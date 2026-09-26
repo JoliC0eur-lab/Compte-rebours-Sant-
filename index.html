@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Concours S1 Santé</title>
+<link rel="preconnect" href__="https://fonts.googleapis.com" />
+<link rel="preconnect" href__="https://fonts.gstatic.com" crossorigin />
+<link href__="https://fonts.googleapis.com/css2?family=Oswald:wght@600&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #fbe4e4;          /* fond rose */
+    --title: #221e1e;       /* couleur du titre */
+    --card-top: #2d2b2b;    /* haut des cartes */
+    --card-bottom: #262424; /* bas des cartes */
+    --digit: #e5484d;       /* couleur des chiffres */
+    --label: #2b2626;       /* couleur des libellés */
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    font-family: 'Source Serif 4', Georgia, serif;
+  }
+
+  /* Taille des chiffres : le 7.5rem est la taille maximale */
+  .countdown {
+    font-size: clamp(1.6rem, 7.6vw, 7.5rem);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .countdown h1 {
+    margin: 0 0 0.35em;
+    font-size: 0.32em;
+    font-weight: 600;
+    color: var(--title);
+    text-align: center;
+  }
+
+  .units { display: flex; gap: 0.16em; }
+  .unit { display: flex; flex-direction: column; align-items: center; }
+
+  .card {
+    position: relative;
+    width: 1.5em;
+    height: 1.3em;
+    border-radius: 0.12em;
+    perspective: 3em;
+    box-shadow: 0 0.08em 0.18em rgba(0, 0, 0, 0.35);
+    font-family: Impact, 'Oswald', 'Arial Narrow', sans-serif;
+    color: var(--digit);
+    line-height: 1;
+    letter-spacing: 0.04em;
+  }
+
+  .half { position: absolute; left: 0; right: 0; height: 50%; overflow: hidden; }
+  .half.top { top: 0; background: var(--card-top); border-radius: 0.12em 0.12em 0 0; }
+  .half.bottom { bottom: 0; background: var(--card-bottom); border-radius: 0 0 0.12em 0.12em; }
+
+  .half span {
+    position: absolute;
+    left: 0; right: 0;
+    height: 200%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .half.top span { top: 0; }
+  .half.bottom span { bottom: 0; }
+
+  .divider {
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    height: 0.02em;
+    min-height: 1px;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 20;
+  }
+
+  .flip-top {
+    transform-origin: bottom;
+    backface-visibility: hidden;
+    z-index: 10;
+    animation: flip-top 0.3s ease-in forwards;
+  }
+  .flip-bottom {
+    transform-origin: top;
+    backface-visibility: hidden;
+    z-index: 10;
+    animation: flip-bottom 0.3s ease-out 0.3s both;
+  }
+
+  @keyframes flip-top { from { transform: rotateX(0deg); } to { transform: rotateX(-90deg); } }
+  @keyframes flip-bottom { from { transform: rotateX(90deg); } to { transform: rotateX(0deg); } }
+
+  .unit .label {
+    margin-top: 0.9em;
+    font-size: 0.18em;
+    color: var(--label);
+    letter-spacing: 0.03em;
+  }
+</style>
+</head>
+<body>
+
+  <div class="countdown">
+    <h1 id="title"></h1>
+    <div class="units" id="units"></div>
+  </div>
+
+  <script>
+    /* ------------------ Réglages ------------------ */
+    var TITLE  = "Concours S1 Santé";
+    var TARGET = new Date("2026-11-27T09:00:00"); // date cible (heure locale)
+    /* ---------------------------------------------- */
+
+    var LABELS = ["Years", "Months", "Weeks", "Days", "Hours", "Minutes", "Seconds"];
+
+    document.getElementById("title").textContent = TITLE;
+
+    function pad(n) { return String(n || 0).padStart(2, "0"); }
+
+    function getUnits(now) {
+      if (now >= TARGET) return [0, 0, 0, 0, 0, 0, 0];
+      var y  = TARGET.getFullYear() - now.getFullYear();
+      var m  = TARGET.getMonth() - now.getMonth();
+      var d  = TARGET.getDate() - now.getDate();
+      var h  = TARGET.getHours() - now.getHours();
+      var mi = TARGET.getMinutes() - now.getMinutes();
+      var s  = TARGET.getSeconds() - now.getSeconds();
+
+      if (s < 0)  { s += 60; mi--; }
+      if (mi < 0) { mi += 60; h--; }
+      if (h < 0)  { h += 24; d--; }
+      if (d < 0)  { d += new Date(TARGET.getFullYear(), TARGET.getMonth(), 0).getDate(); m--; }
+      if (m < 0)  { m += 12; y--; }
+
+      return [y, m, Math.floor(d / 7), d % 7, h, mi, s];
+    }
+
+    var units = LABELS.map(function (label) {
+      var el = document.createElement("div");
+      el.className = "unit";
+      el.innerHTML = '<div class="card"><div class="divider"></div></div>' +
+                     '<div class="label">' + label + "</div>";
+      document.getElementById("units").appendChild(el);
+      return { card: el.querySelector(".card"), value: null };
+    });
+
+    function half(position, value, extra) {
+      return '<div class="half ' + position + (extra ? " " + extra : "") + '">' +
+               "<span>" + value + "</span>" +
+             "</div>";
+    }
+
+    function render(unit, value) {
+      var animated = "";
+      if (unit.value !== null && unit.value !== value) {
+        animated = half("top", unit.value, "flip-top") +
+                   half("bottom", value, "flip-bottom");
+      }
+      var previous = unit.value === null ? value : unit.value;
+      unit.value = value;
+
+      unit.card.innerHTML =
+        half("top", value) +
+        half("bottom", previous) +
+        animated +
+        '<div class="divider"></div>';
+    }
+
+    function tick() {
+      var values = getUnits(new Date()).map(pad);
+      units.forEach(function (unit, i) { render(unit, values[i]); });
+    }
+
+    tick();
+    setInterval(tick, 1000);
+  </script>
+
+</body>
+</html>
